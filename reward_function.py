@@ -2,17 +2,18 @@ MAX_SPEED = 5
 SPEED_GRANULARITY = 3
 
 def is_on_straight_line(params):
-    return track_angle(params) == params['headings']
+    #If on distance between two waypoints could exist an curse this won`t work
+    return track_angle(params) == params['heading']
 
 # If is on straight line, keep increasing the speed
 # Bad reward if is on the lowest granularity
 def reward_for_straight_line(params):
     if params['speed'] == MAX_SPEED :
-        return 1
+        return max_reward(params)
     elif params['speed'] > MAX_SPEED/SPEED_GRANULARITY:
         return 0.5
     else:
-        return 1e-3
+        return lowest_reward(params)
     
 
 # If the track angle is on differente signal than the car angle, bad reward
@@ -21,18 +22,19 @@ def reward_for_curve(params):
     track = angleOn180(track_angle(params))
 
     if car*track < 0 :
-        return 1e-3
+        return lowest_reward(params)
     else:
-         return 1 
+        return max_reward(params) 
 
 def reward_function(params):
     reward = 1
     if(not params['all_wheels_on_track']):
-        reward = 1e-3
+        reward = lowest_reward(params)
     elif is_on_straight_line(params) : 
         reward = reward_for_straight_line(params)
     else:
-        reward = reward_for_curve(params)    
+        reward = reward_for_curve(params)  
+
     return float(reward)
 
 def angle(p1,p2):
@@ -51,8 +53,15 @@ def track_angle(params):
     prev_point = waypoints[closest_waypoints[0]]
     next_point = waypoints[closest_waypoints[1]]
 
-    
     return angle(next_point,prev_point)
+
+#give higher reward if is in a more advanced progress
+#Evaluate if really worth
+def max_reward(params):
+    return 1*params['progress']
+
+def lowest_reward(params):
+    return 1e-3
 
 aws_params = {
     "all_wheels_on_track": True,    # flag to indicate if the vehicle is on the track
