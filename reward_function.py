@@ -8,7 +8,7 @@ def is_on_straight_line(params):
     return fit_bias(fullAngle(track_angle(params)),
                     fullAngle(params['heading']), BIAS_ANGLE_DIFF)
 
-def is_curve_ahead(params):
+def is_straight_ahead(params):
     return fit_bias(fullAngle(track_angle(params)),
                         fullAngle(track_angle_ahead(params)), 1)
 
@@ -16,13 +16,13 @@ def is_curve_ahead(params):
 # If is there curve ahead, reduce speed
 # Bad reward if is on the lowest granularity
 def reward_for_straight_line(params):
-    curve_ahead = is_curve_ahead(params)
+    straight_ahead = is_straight_ahead(params)
     if params['speed'] == MAX_SPEED :
-        return lowest_reward(params) if curve_ahead  else  max_reward(params)
+        return max_reward(params) if straight_ahead else lowest_reward(params)
     elif params['speed'] > MAX_SPEED/SPEED_GRANULARITY:
         return parametized_reward(0.5,params)
     else:
-        return max_reward(params) if curve_ahead else lowest_reward(params)
+        return  lowest_reward(params) if straight_ahead else max_reward(params)
 
 # If the track angle is on differente signal than the car angle, bad reward
 def reward_for_curve(params):
@@ -113,9 +113,12 @@ print(fullAngle(angle([1,1],[3,3]))) #45
 print(fullAngle(angle([1,1],[0,0]))) #- 135 / 225
 print(fullAngle(angle([1,1],[0,1]))) #180 / -180
 print(fullAngle(angle([0,1], [1,1]))) #0/360
-print(fullAngle(angle([0,1], [2,2]))) #0/360
+print(fullAngle(angle([0,1], [2,2]))) #26/360
 
 print(fullAngle(angle([0,1], [0,1]))) #0/360
+print(abs(angle([0,1], [2,2])-angle([1,1],[3,3])))
+print(fit_bias(angle([0,1], [2,2]),angle([1,1],[3,3]), 18))
 
-
+print(fit_bias(fullAngle(angle([1,1],[2,2])),
+                        fullAngle(angle([2,2],[3,4])), 1))
 #reward_function(aws_params)
