@@ -1,28 +1,44 @@
-MAX_SPEED = 5
-SPEED_GRANULARITY = 3
-BIAS_ANGLE_DIFF = 5
+MAX_STEERING_ANGLE=30  #1 TO 30
+STEERIMG_GRANULARITY=3 #3,5,7
+ANGLE_BIAS=(MAX_STEERING_ANGLE*2)/(STEERIMG_GRANULARITY-1) / 2
+MAX_SPEED = 8 #1 TO 8
+SPEED_GRANULARITY = 3 #1 TO 3
+SPEED_BIAS=(MAX_SPEED/SPEED_GRANULARITY)/2
 DEMOTIVATE_VALUE = 1e-3
 
-def is_on_straight_line(params):
-    #If on distance between two waypoints could exist an curve this won`t work
+def reward_function(params):
+    reward = 1
+    if(not params['all_wheels_on_track']):
+        reward = lowest_reward(params)
+    elif is_on_correct_angle(params) : 
+        reward = reward_for_correct_angle(params)
+    else:
+        reward = reward_for_curve(params)  
+
+    return float(reward)
+
+#If diference between car angle (prev point [x,y] w/ car [x,y])  and the track angle (prev point [x,y] w/ next point [x,y]) 
+#is higher than half of the steering gap the car should correct this
+def is_on_correct_angle(params):
     return fit_bias(fullAngle(track_angle(params)),
-                    fullAngle(params['heading']), BIAS_ANGLE_DIFF)
+                    fullAngle(car_angle_over_prev_waypoint(params)), ANGLE_BIAS)
 
 def is_straight_ahead(params):
     return fit_bias(fullAngle(track_angle(params)),
                         fullAngle(track_angle_ahead(params)), 1)
 
-# If is on straight line, keep increasing the speed
-# If is there curve ahead, reduce speed
-# Bad reward if is on the lowest granularity
-def reward_for_straight_line(params):
-    straight_ahead = is_straight_ahead(params)
-    if params['speed'] == MAX_SPEED :
-        return max_reward(params) if straight_ahead else lowest_reward(params)
-    elif params['speed'] > MAX_SPEED/SPEED_GRANULARITY:
-        return parametized_reward(0.5,params)
+#If there no curve ahead, speed up
+def reward_for_correct_angle(params):
+    if(SPEED_GRANULARITY == 1):
+        return max_reward(params)
     else:
-        return  lowest_reward(params) if straight_ahead else max_reward(params)
+        #Check angle ahead
+        angle_ahead = abs(fullAngle(track_angle_ahead(params))-fullAngle(track_angle(params)))
+        is_on_high_speed = fit_bias(params['speed'], MAX_SPEED, SPEED_BIAS)
+        if(angle_ahead > ANGLE_BIAS): #will need to correct the angle, so reduce speed
+            return lowest_reward(params) if is_on_high_speed else max_reward(params)
+        else
+            return max_reward(params) if is_on_high_speed else lowest_reward(params)
 
 # If the track angle is on differente signal than the car angle, bad reward
 def reward_for_curve(params):
@@ -34,17 +50,6 @@ def reward_for_curve(params):
         return max_reward(params)
     else:
         return lowest_reward(params)
-
-def reward_function(params):
-    reward = 1
-    if(not params['all_wheels_on_track']):
-        reward = lowest_reward(params)
-    elif is_on_straight_line(params) : 
-        reward = reward_for_straight_line(params)
-    else:
-        reward = reward_for_curve(params)  
-
-    return float(reward)
 
 def angle(p1,p2):
     import math
@@ -68,6 +73,14 @@ def track_angle(params):
     next_point = waypoints[closest_waypoints[1]]
 
     return angle(next_point,prev_point)
+
+def car_angle_over_prev_waypoint(params):
+    closest_waypoints = params['closest_waypoints']
+    waypoints =  params['waypoints']
+    prev_point = waypoints[closest_waypoints[0]]
+    car_point = [params['x'],params['y']]
+
+    return angle(car_point,prev_point)
 
 def track_angle_ahead(params):
     waypoints_ahead = params['closest_waypoints'][1]
@@ -121,4 +134,6 @@ print(fit_bias(angle([0,1], [2,2]),angle([1,1],[3,3]), 18))
 
 print(fit_bias(fullAngle(angle([1,1],[2,2])),
                         fullAngle(angle([2,2],[3,4])), 1))
+
+print(ANGLE_BIAS)
 #reward_function(aws_params)
