@@ -13,7 +13,7 @@ def reward_function(params):
     elif is_on_correct_angle(params) : 
         reward = reward_for_correct_angle(params)
     else:
-        reward = reward_for_curve(params)  
+        reward = lowest_reward(params)
 
     return float(reward)
 
@@ -37,7 +37,7 @@ def reward_for_correct_angle(params):
         is_on_high_speed = fit_bias(params['speed'], MAX_SPEED, SPEED_BIAS)
         if(angle_ahead > ANGLE_BIAS): #will need to correct the angle, so reduce speed
             return lowest_reward(params) if is_on_high_speed else max_reward(params)
-        else
+        else:
             return max_reward(params) if is_on_high_speed else lowest_reward(params)
 
 # If the track angle is on differente signal than the car angle, bad reward
@@ -86,14 +86,14 @@ def track_angle_ahead(params):
     waypoints_ahead = params['closest_waypoints'][1]
     waypoints =  params['waypoints']
     prev_point = waypoints[waypoints_ahead]
-    next_point = waypoints[min(waypoints_ahead+1,49)]#avoid arrayIndexOutOfBounds
+    next_point = waypoints[min(waypoints_ahead+1,waypoints.__len__()-1)]#avoid arrayIndexOutOfBounds
 
     return angle(next_point,prev_point)
 
 #give higher reward if is in a more advanced progress
 #TODO: Evaluate if really worth
 def max_reward(params):
-    return 1*params['progress']
+    return (1+params['steps'])
 
 def parametized_reward(reward,params):
     return reward*params['progress']
