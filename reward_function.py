@@ -93,13 +93,13 @@ def track_angle_ahead(params):
 #give higher reward if is in a more advanced progress
 #TODO: Evaluate if really worth
 def max_reward(params):
-    return (1+params['steps'])
+    return (params['progress']*10) + 1
 
 def parametized_reward(reward,params):
     return reward*params['progress']
 
 def lowest_reward(params):
-    return DEMOTIVATE_VALUE
+    return (params['progress']*-10)
 
 def fit_bias(angle1, angle2, bias):
     return abs(angle1-angle2) <= bias
